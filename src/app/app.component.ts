@@ -23,6 +23,7 @@ export class AppComponent implements OnInit, AfterViewInit {
   projects: ProjectRecord[] = [];
   cashEntries: CashRecord[] = [];
   search = '';
+  projectMonth = '';
   modal: 'material' | 'project' | 'receipt' | 'cash' | null = null;
   formError = '';
   materialForm = { code: '', name: '', unit: 'pza', initialStock: 0, unitCost: 0, minimumStock: 0 };
@@ -59,7 +60,11 @@ export class AppComponent implements OnInit, AfterViewInit {
 
   get filteredProjects(): ProjectRecord[] {
     const term = this.search.trim().toLocaleLowerCase();
-    return this.projects.filter((item) => `${item.projectCode} ${item.client} ${item.status}`.toLocaleLowerCase().includes(term));
+    return this.projects.filter((item) => {
+      const matchesText = `${item.projectCode} ${item.client} ${item.status}`.toLocaleLowerCase().includes(term);
+      const matchesMonth = !this.projectMonth || item.startDate.startsWith(this.projectMonth);
+      return matchesText && matchesMonth;
+    });
   }
 
   get stockValue(): number {
@@ -124,6 +129,7 @@ export class AppComponent implements OnInit, AfterViewInit {
   selectView(view: 'Resumen' | 'Inventario' | 'Proyectos' | 'Caja'): void {
     this.view = view;
     this.search = '';
+    this.projectMonth = '';
     if (view === 'Resumen') setTimeout(() => this.drawCharts());
   }
 

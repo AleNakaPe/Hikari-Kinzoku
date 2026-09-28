@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { AppComponent } from './app.component';
+import { ProjectRecord } from './data/hikari-database.service';
 
 describe('AppComponent', () => {
   beforeEach(async () => {
@@ -37,5 +38,29 @@ describe('AppComponent', () => {
   it('should format amounts in Paraguayan guaranies', () => {
     const app = TestBed.createComponent(AppComponent).componentInstance;
     expect(app.formatCurrency(4600)).toBe('Gs. 4.600');
+  });
+
+  it('should filter projects by start month and text together', () => {
+    const app = TestBed.createComponent(AppComponent).componentInstance;
+    const project = (projectCode: string, client: string, startDate: string): ProjectRecord => ({
+      projectCode,
+      client,
+      startDate,
+      deliveryDate: startDate,
+      materials: [],
+      hours: 1,
+      laborCost: 0,
+      sellingPrice: 0,
+      status: 'En curso'
+    });
+    app.projects = [
+      project('HK-1001', 'Nikko Works', '2026-09-03'),
+      project('HK-1002', 'Mori Precision', '2026-09-18'),
+      project('HK-1003', 'Nikko Works', '2026-08-28')
+    ];
+    app.projectMonth = '2026-09';
+    app.search = 'Nikko';
+
+    expect(app.filteredProjects.map((item) => item.projectCode)).toEqual(['HK-1001']);
   });
 });
