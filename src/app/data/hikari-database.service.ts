@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import Dexie, { Table } from 'dexie';
+import { getDesktopDatabase } from './desktop-database.bridge';
 
 export interface MaterialRecord {
   id?: number;
@@ -118,6 +119,7 @@ export class HikariDatabaseService {
           { client: 'Mori Precision', description: 'Cotización para marco estructural con recubrimiento.', sellingPrice: 3900, date: date(-4) }
         ]);
       });
+      await this.initializeDesktopDatabase();
       return;
     }
 
@@ -128,37 +130,54 @@ export class HikariDatabaseService {
         { client: 'Mori Precision', description: 'Cotización para marco estructural con recubrimiento.', sellingPrice: 3900, date: date(-4) }
       ]);
     }
+    await this.initializeDesktopDatabase();
   }
 
   getMaterials(): Promise<MaterialRecord[]> {
+    const desktopDatabase = getDesktopDatabase();
+    if (desktopDatabase) return desktopDatabase.getMaterials();
     return this.database.materials.toArray();
   }
 
   getProjects(): Promise<ProjectRecord[]> {
+    const desktopDatabase = getDesktopDatabase();
+    if (desktopDatabase) return desktopDatabase.getProjects();
     return this.database.projects.orderBy('startDate').reverse().toArray();
   }
 
   getCashEntries(): Promise<CashRecord[]> {
+    const desktopDatabase = getDesktopDatabase();
+    if (desktopDatabase) return desktopDatabase.getCashEntries();
     return this.database.cashEntries.orderBy('date').reverse().toArray();
   }
 
   getBudgets(): Promise<BudgetRecord[]> {
+    const desktopDatabase = getDesktopDatabase();
+    if (desktopDatabase) return desktopDatabase.getBudgets();
     return this.database.budgets.orderBy('date').reverse().toArray();
   }
 
   async addBudget(budget: Omit<BudgetRecord, 'id'>): Promise<void> {
+    const desktopDatabase = getDesktopDatabase();
+    if (desktopDatabase) return desktopDatabase.addBudget(budget);
     await this.database.budgets.add(budget);
   }
 
   async updateBudget(id: number, budget: Partial<Omit<BudgetRecord, 'id'>>): Promise<void> {
+    const desktopDatabase = getDesktopDatabase();
+    if (desktopDatabase) return desktopDatabase.updateBudget(id, budget);
     await this.database.budgets.update(id, budget);
   }
 
   async deleteBudget(id: number): Promise<void> {
+    const desktopDatabase = getDesktopDatabase();
+    if (desktopDatabase) return desktopDatabase.deleteBudget(id);
     await this.database.budgets.delete(id);
   }
 
   async addMaterial(material: Omit<MaterialRecord, 'id' | 'entries' | 'exits'>): Promise<void> {
+    const desktopDatabase = getDesktopDatabase();
+    if (desktopDatabase) return desktopDatabase.addMaterial(material);
     if (await this.database.materials.where('code').equals(material.code).count()) {
       throw new Error('Ya existe un material con ese código.');
     }
@@ -166,6 +185,8 @@ export class HikariDatabaseService {
   }
 
   async receiveMaterial(materialId: number, quantity: number, unitCost: number, date: string): Promise<void> {
+    const desktopDatabase = getDesktopDatabase();
+    if (desktopDatabase) return desktopDatabase.receiveMaterial(materialId, quantity, unitCost, date);
     await this.database.transaction('rw', this.database.materials, this.database.cashEntries, async () => {
       const material = await this.database.materials.get(materialId);
       if (!material) throw new Error('No se encontró el material seleccionado.');
@@ -179,6 +200,8 @@ export class HikariDatabaseService {
   }
 
   async addProject(project: Omit<ProjectRecord, 'id'>): Promise<void> {
+    const desktopDatabase = getDesktopDatabase();
+    if (desktopDatabase) return desktopDatabase.addProject(project);
     await this.database.transaction('rw', this.database.materials, this.database.projects, async () => {
       const quantities = new Map<number, number>();
       for (const line of project.materials) quantities.set(line.materialId, (quantities.get(line.materialId) ?? 0) + line.quantity);
@@ -197,6 +220,8 @@ export class HikariDatabaseService {
   }
 
   async completeProject(projectId: number, date: string): Promise<void> {
+    const desktopDatabase = getDesktopDatabase();
+    if (desktopDatabase) return desktopDatabase.completeProject(projectId, date);
     await this.database.transaction('rw', this.database.projects, this.database.cashEntries, async () => {
       const project = await this.database.projects.get(projectId);
       if (!project || project.status === 'Finalizado') return;
@@ -206,6 +231,19 @@ export class HikariDatabaseService {
   }
 
   async addCashEntry(entry: Omit<CashRecord, 'id'>): Promise<void> {
+    const desktopDatabase = getDesktopDatabase();
+    if (desktopDatabase) return desktopDatabase.addCashEntry(entry);
     await this.database.cashEntries.add(entry);
+  }
+
+  private async initializeDesktopDatabase(): Promise<void> {
+    const desktopDatabase = getDesktopDatabase();
+    if (!desktopDatabase) return;
+    await desktopDatabase.initialize({
+      materials: await this.database.materials.toArray(),
+      projects: await this.database.projects.toArray(),
+      cashEntries: await this.database.cashEntries.toArray(),
+      budgets: await this.database.budgets.toArray()
+    });
   }
 }

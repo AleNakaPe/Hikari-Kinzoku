@@ -1,14 +1,42 @@
 {
   "name": "hikari-control",
   "version": "0.0.0",
+  "main": "electron/main.cjs",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
+    "desktop": "concurrently -k \"ng serve --host 127.0.0.1\" \"wait-on http://127.0.0.1:4200 && electron .\"",
     "build": "ng build",
+    "package:windows": "npm run build -- --base-href ./ && electron-builder --win nsis",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "test:desktop": "node --test electron/database.test.cjs"
   },
   "private": true,
+  "build": {
+    "appId": "com.hikarikinzoku.control",
+    "productName": "Hikari Kinzoku",
+    "asar": true,
+    "files": [
+      "dist/hikari-control/browser/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "signAndEditExecutable": false,
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Hikari Kinzoku"
+    }
+  },
   "dependencies": {
     "@angular/common": "^19.2.0",
     "@angular/compiler": "^19.2.0",
@@ -23,6 +51,7 @@
     "primeicons": "^8.0.2",
     "primeng": "^19.1.4",
     "rxjs": "~7.8.0",
+    "sql.js": "^1.14.2",
     "tslib": "^2.3.0",
     "zone.js": "~0.15.0"
   },
@@ -31,12 +60,16 @@
     "@angular/cli": "^19.2.15",
     "@angular/compiler-cli": "^19.2.0",
     "@types/jasmine": "~5.1.0",
+    "concurrently": "^9.2.4",
+    "electron": "^35.7.5",
+    "electron-builder": "^24.13.3",
     "jasmine-core": "~5.6.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
-    "typescript": "~5.7.2"
+    "typescript": "~5.7.2",
+    "wait-on": "^9.5.1"
   }
 }
