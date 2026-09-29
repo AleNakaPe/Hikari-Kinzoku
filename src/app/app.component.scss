@@ -124,6 +124,13 @@ th:first-child, td:first-child { padding-left: 19px; }
 .finish-button { color: #4b7c5d; }
 .table-footnote { display: flex; align-items: center; gap: 7px; min-height: 39px; padding: 0 18px; border-top: 1px solid #edf0ed; color: #929e96; font-size: 9px; }
 .table-footnote i { color: #84998c; font-size: 11px; }
+.clickable-row { cursor: pointer; }
+.clickable-row:hover { background: rgba(45, 106, 88, 0.018); }
+.actions-cell { display: flex; justify-content: flex-end; gap: 6px; }
+.table-action { display: inline-flex; align-items: center; justify-content: center; min-height: 24px; padding: 0 8px; border: 1px solid transparent; border-radius: 4px; font-size: 9px; font-weight: 600; cursor: pointer; }
+.action-edit { color: #3d6e5c; background: #edf4ef; }
+.action-print { color: #6f6a2a; background: #f7f3d5; }
+.action-delete { color: #8b4f45; background: #f8ece8; }
 .empty-state { height: 85px; color: #9aa59e; text-align: center; }
 .cash-hero { display: flex; align-items: center; justify-content: space-between; min-height: 126px; margin-bottom: 15px; padding: 21px 25px; border-radius: 5px; color: white; background: #2b5143; }
 .cash-hero > div { display: grid; gap: 7px; }
@@ -141,8 +148,9 @@ th:first-child, td:first-child { padding-left: 19px; }
 .dialog form > label { display: grid; gap: 6px; margin-bottom: 14px; color: #637168; font-size: 10px; font-weight: 600; }
 .form-grid label { display: grid; min-width: 0; gap: 6px; color: #637168; font-size: 10px; font-weight: 600; }
 .form-grid .span-two { grid-column: span 2; }
-.dialog input, .dialog select { width: 100%; min-width: 0; height: 36px; padding: 0 10px; border: 1px solid #e0e6e1; border-radius: 4px; outline: 0; color: #34443b; background: white; font-size: 11px; font-weight: 400; }
-.dialog input:focus, .dialog select:focus { border-color: #8aa995; box-shadow: 0 0 0 2px rgba(45,106,88,.08); }
+.dialog input, .dialog select, .dialog textarea { width: 100%; min-width: 0; height: 36px; padding: 0 10px; border: 1px solid #e0e6e1; border-radius: 4px; outline: 0; color: #34443b; background: white; font-size: 11px; font-weight: 400; }
+.dialog textarea { min-height: 96px; padding: 10px; resize: vertical; }
+.dialog input:focus, .dialog select:focus, .dialog textarea:focus { border-color: #8aa995; box-shadow: 0 0 0 2px rgba(45,106,88,.08); }
 .materials-editor { margin: 3px 0 14px; padding-top: 13px; border-top: 1px solid #edf0ed; }
 .editor-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; color: #516258; font-size: 10px; }
 .material-line { display: grid; grid-template-columns: minmax(0, 1fr) 90px 29px; gap: 8px; margin-top: 7px; }
@@ -150,6 +158,7 @@ th:first-child, td:first-child { padding-left: 19px; }
 .form-error { display: flex; align-items: flex-start; gap: 7px; margin: 0 0 12px; color: #a34e41; font-size: 10px; }
 .form-error i { margin-top: 1px; }
 .dialog-submit { width: 100%; min-height: 39px; margin-top: 4px; }
+.budget-actions { display: flex; justify-content: flex-end; margin-top: 8px; }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes rise-in { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
 

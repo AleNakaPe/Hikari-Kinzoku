@@ -63,4 +63,50 @@ describe('AppComponent', () => {
 
     expect(app.filteredProjects.map((item) => item.projectCode)).toEqual(['HK-1001']);
   });
+
+  it('should expose a budget list with client, date and selling price for the Presupuestos view', () => {
+    const app = TestBed.createComponent(AppComponent).componentInstance;
+    app.budgets = [
+      { id: 1, client: 'Nikko Works', description: 'Presupuesto de estructura metálica', sellingPrice: 1600, date: '2026-09-10' },
+      { id: 2, client: 'Mori Precision', description: 'Cotización de soporte industrial', sellingPrice: 2300, date: '2026-09-11' }
+    ];
+
+    app.view = 'Presupuestos';
+    expect(app.view).toBe('Presupuestos');
+    expect(app.budgetProjects.map((item) => ({ client: item.client, price: item.sellingPrice }))).toEqual([
+      { client: 'Nikko Works', price: 1600 },
+      { client: 'Mori Precision', price: 2300 }
+    ]);
+  });
+
+  it('should print a budget note with the entered fields escaped for HTML', async () => {
+    const app = TestBed.createComponent(AppComponent).componentInstance;
+    const printFrame = {
+      title: '',
+      srcdoc: '',
+      style: {} as CSSStyleDeclaration,
+      setAttribute: jasmine.createSpy('setAttribute'),
+      addEventListener: jasmine.createSpy('addEventListener'),
+      remove: jasmine.createSpy('remove')
+    } as unknown as HTMLIFrameElement;
+    spyOn(document, 'createElement').and.returnValue(printFrame);
+    spyOn(document.body, 'appendChild').and.returnValue(printFrame);
+
+    app.printBudget({
+      id: 42,
+      client: 'Nikko & Works',
+      description: '<script>alert("x")</script>',
+      sellingPrice: 1600,
+      date: '2026-09-10'
+    }, new Event('click'));
+
+    const html = printFrame.srcdoc;
+
+    expect(printFrame.title).toBe('Vista de impresión del presupuesto');
+    expect(html).toContain('HK-PRES-00042');
+    expect(html).toContain('Nikko &amp; Works');
+    expect(html).toContain('&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;');
+    expect(html).toContain('Gs. 1.600');
+    expect(printFrame.addEventListener).toHaveBeenCalledWith('load', jasmine.any(Function), { once: true });
+  });
 });

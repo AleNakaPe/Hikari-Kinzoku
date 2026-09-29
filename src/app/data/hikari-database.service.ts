@@ -44,17 +44,27 @@ export interface CashRecord {
   type: 'Ingreso' | 'Egreso';
 }
 
+export interface BudgetRecord {
+  id?: number;
+  client: string;
+  description: string;
+  sellingPrice: number;
+  date: string;
+}
+
 class HikariDatabase extends Dexie {
   materials!: Table<MaterialRecord, number>;
   projects!: Table<ProjectRecord, number>;
   cashEntries!: Table<CashRecord, number>;
+  budgets!: Table<BudgetRecord, number>;
 
   constructor() {
     super('hikari-control-local');
-    this.version(2).stores({
+    this.version(3).stores({
       materials: '++id, &code, name',
       projects: '++id, &projectCode, client, status, startDate, deliveryDate',
-      cashEntries: '++id, date, type, concept'
+      cashEntries: '++id, date, type, concept',
+      budgets: '++id, client, date'
     });
   }
 }
@@ -65,7 +75,6 @@ export class HikariDatabaseService {
 
   async initialize(): Promise<void> {
     await this.database.open();
-    if (await this.database.materials.count()) return;
 
     const today = new Date();
     const date = (dayOffset: number) => {
@@ -74,7 +83,9 @@ export class HikariDatabaseService {
       return value.toISOString().slice(0, 10);
     };
 
-    await this.database.transaction('rw', this.database.materials, this.database.projects, this.database.cashEntries, async () => {
+    const hasMaterials = await this.database.materials.count();
+    if (!hasMaterials) {
+      await this.database.transaction('rw', this.database.materials, this.database.projects, this.database.cashEntries, this.database.budgets, async () => {
       const ironId = await this.database.materials.add({ code: 'MAT-001', name: 'Lámina de acero inoxidable', unit: 'kg', initialStock: 200, entries: 0, exits: 50, unitCost: 12, minimumStock: 60 });
       const steelId = await this.database.materials.add({ code: 'MAT-002', name: 'Perfil estructural', unit: 'm', initialStock: 120, entries: 0, exits: 34, unitCost: 18, minimumStock: 30 });
       const paintId = await this.database.materials.add({ code: 'MAT-003', name: 'Recubrimiento industrial', unit: 'l', initialStock: 40, entries: 0, exits: 16, unitCost: 9, minimumStock: 12 });
@@ -101,7 +112,22 @@ export class HikariDatabaseService {
         { date: date(-54), concept: 'Compra de materiales', detail: 'Suministros de producción', amount: 1250, type: 'Egreso' },
         { date: date(-33), concept: 'HK-0264 · Nikko Works', detail: 'Cobro de proyecto finalizado', amount: 4600, type: 'Ingreso' }
       ]);
-    });
+
+        await this.database.budgets.bulkAdd([
+          { client: 'Nikko Works', description: 'Presupuesto para estructura metálica y acabado industrial.', sellingPrice: 4600, date: date(-15) },
+          { client: 'Mori Precision', description: 'Cotización para marco estructural con recubrimiento.', sellingPrice: 3900, date: date(-4) }
+        ]);
+      });
+      return;
+    }
+
+    const hasBudgets = await this.database.budgets.count();
+    if (!hasBudgets) {
+      await this.database.budgets.bulkAdd([
+        { client: 'Nikko Works', description: 'Presupuesto para estructura metálica y acabado industrial.', sellingPrice: 4600, date: date(-15) },
+        { client: 'Mori Precision', description: 'Cotización para marco estructural con recubrimiento.', sellingPrice: 3900, date: date(-4) }
+      ]);
+    }
   }
 
   getMaterials(): Promise<MaterialRecord[]> {
@@ -114,6 +140,22 @@ export class HikariDatabaseService {
 
   getCashEntries(): Promise<CashRecord[]> {
     return this.database.cashEntries.orderBy('date').reverse().toArray();
+  }
+
+  getBudgets(): Promise<BudgetRecord[]> {
+    return this.database.budgets.orderBy('date').reverse().toArray();
+  }
+
+  async addBudget(budget: Omit<BudgetRecord, 'id'>): Promise<void> {
+    await this.database.budgets.add(budget);
+  }
+
+  async updateBudget(id: number, budget: Partial<Omit<BudgetRecord, 'id'>>): Promise<void> {
+    await this.database.budgets.update(id, budget);
+  }
+
+  async deleteBudget(id: number): Promise<void> {
+    await this.database.budgets.delete(id);
   }
 
   async addMaterial(material: Omit<MaterialRecord, 'id' | 'entries' | 'exits'>): Promise<void> {
