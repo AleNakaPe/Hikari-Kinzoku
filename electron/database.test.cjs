@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { afterEach, beforeEach, test } = require('node:test');
+const initSqlJs = require('sql.js');
 const { createDatabase } = require('./database.cjs');
 
 let directory;
@@ -57,9 +58,41 @@ test('receives material with weighted cost and records the expense atomically', 
   assert.deepEqual(database.getCashEntries().map(({ amount, type }) => ({ amount, type })), [{ amount: 80, type: 'Egreso' }]);
 });
 
+test('stores an optional project association on cash movements', () => {
+  database.addCashEntry({
+    date: '2026-09-03', concept: 'Anticipo', detail: 'Primer pago',
+    amount: 150, type: 'Ingreso', projectId: 1
+  });
+  assert.equal(database.getCashEntries()[0].projectId, 1);
+});
+
 test('completes a project and records its income only once', () => {
   database.completeProject(1, '2026-09-04');
   database.completeProject(1, '2026-09-05');
   assert.equal(database.getProjects()[0].status, 'Finalizado');
-  assert.deepEqual(database.getCashEntries().map(({ amount, type }) => ({ amount, type })), [{ amount: 500, type: 'Ingreso' }]);
+  assert.deepEqual(database.getCashEntries().map(({ amount, type, projectId }) => ({ amount, type, projectId })), [{ amount: 500, type: 'Ingreso', projectId: 1 }]);
+});
+
+test('adds the project column to an existing SQLite database without losing movements', async () => {
+  database.close();
+  const SQL = await initSqlJs();
+  const legacyDatabase = new SQL.Database();
+  legacyDatabase.exec(`
+    CREATE TABLE cash_entries (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, concept TEXT NOT NULL,
+      detail TEXT NOT NULL, amount REAL NOT NULL, type TEXT NOT NULL
+    );
+  `);
+  legacyDatabase.run('INSERT INTO cash_entries (date, concept, detail, amount, type) VALUES (?, ?, ?, ?, ?)',
+    ['2026-09-01', 'Antiguo', 'Movimiento previo', 25, 'Ingreso']);
+  fs.writeFileSync(filePath, Buffer.from(legacyDatabase.export()));
+  legacyDatabase.close();
+
+  database = await createDatabase(filePath);
+  database.initialize(seed);
+  const oldMovement = database.getCashEntries().find((entry) => entry.concept === 'Antiguo');
+  assert.equal(oldMovement.projectId, null);
+
+  database.addCashEntry({ date: '2026-09-02', concept: 'Nuevo', detail: '', amount: 75, type: 'Ingreso', projectId: 1 });
+  assert.equal(database.getCashEntries().find((entry) => entry.concept === 'Nuevo').projectId, 1);
 });

@@ -38,6 +38,7 @@ export interface ProjectRecord {
 
 export interface CashRecord {
   id?: number;
+  projectId?: number | null;
   date: string;
   concept: string;
   detail: string;
@@ -226,7 +227,7 @@ export class HikariDatabaseService {
       const project = await this.database.projects.get(projectId);
       if (!project || project.status === 'Finalizado') return;
       await this.database.projects.update(projectId, { status: 'Finalizado' });
-      await this.database.cashEntries.add({ date, concept: `${project.projectCode} · ${project.client}`, detail: 'Cobro de proyecto finalizado', amount: project.sellingPrice, type: 'Ingreso' });
+      await this.database.cashEntries.add({ date, concept: `${project.projectCode} · ${project.client}`, detail: 'Cobro de proyecto finalizado', amount: project.sellingPrice, type: 'Ingreso', projectId });
     });
   }
 

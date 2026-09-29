@@ -19,7 +19,7 @@ async function createDatabase(filePath) {
     );
     CREATE TABLE IF NOT EXISTS cash_entries (
       id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, concept TEXT NOT NULL,
-      detail TEXT NOT NULL, amount REAL NOT NULL, type TEXT NOT NULL
+      detail TEXT NOT NULL, amount REAL NOT NULL, type TEXT NOT NULL, project_id INTEGER
     );
     CREATE TABLE IF NOT EXISTS budgets (
       id INTEGER PRIMARY KEY AUTOINCREMENT, client TEXT NOT NULL, description TEXT NOT NULL,
@@ -45,6 +45,9 @@ async function createDatabase(filePath) {
     }
   };
   const one = (sql, parameters = []) => all(sql, parameters)[0];
+  if (!all('PRAGMA table_info(cash_entries)').some((column) => column.name === 'project_id')) {
+    database.run('ALTER TABLE cash_entries ADD COLUMN project_id INTEGER');
+  }
   const write = (sql, parameters = []) => {
     database.run(sql, parameters);
     persist();
@@ -72,8 +75,8 @@ async function createDatabase(filePath) {
     ['project_code', 'client', 'start_date', 'delivery_date', 'materials_json', 'hours', 'labor_cost', 'selling_price', 'status'],
     [project.projectCode, project.client, project.startDate, project.deliveryDate, JSON.stringify(project.materials), project.hours, project.laborCost, project.sellingPrice, project.status], project.id);
   const insertCashEntry = (entry) => insert('cash_entries',
-    ['date', 'concept', 'detail', 'amount', 'type'],
-    [entry.date, entry.concept, entry.detail, entry.amount, entry.type], entry.id);
+    ['date', 'concept', 'detail', 'amount', 'type', 'project_id'],
+    [entry.date, entry.concept, entry.detail, entry.amount, entry.type, entry.projectId ?? null], entry.id);
   const insertBudget = (budget) => insert('budgets',
     ['client', 'description', 'selling_price', 'date'],
     [budget.client, budget.description, budget.sellingPrice, budget.date], budget.id);
@@ -108,7 +111,7 @@ async function createDatabase(filePath) {
   function getCashEntries() {
     return all('SELECT * FROM cash_entries ORDER BY date DESC').map((row) => ({
       id: row.id, date: row.date, concept: row.concept, detail: row.detail,
-      amount: row.amount, type: row.type
+      amount: row.amount, type: row.type, projectId: row.project_id
     }));
   }
 
@@ -184,7 +187,7 @@ async function createDatabase(filePath) {
       database.run("UPDATE projects SET status = 'Finalizado' WHERE id = ?", [projectId]);
       insertCashEntry({
         date, concept: `${project.project_code} · ${project.client}`,
-        detail: 'Cobro de proyecto finalizado', amount: project.selling_price, type: 'Ingreso'
+        detail: 'Cobro de proyecto finalizado', amount: project.selling_price, type: 'Ingreso', projectId
       });
     });
   }

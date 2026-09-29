@@ -40,6 +40,36 @@ describe('AppComponent', () => {
     expect(app.formatCurrency(4600)).toBe('Gs. 4.600');
   });
 
+  it('should offer only in-progress projects and total assigned income payments', () => {
+    const app = TestBed.createComponent(AppComponent).componentInstance;
+    const activeProject: ProjectRecord = {
+      id: 11,
+      projectCode: 'HK-0011',
+      client: 'Nikko Works',
+      startDate: '2026-09-01',
+      deliveryDate: '2026-09-20',
+      materials: [],
+      hours: 2,
+      laborCost: 100,
+      sellingPrice: 1000,
+      status: 'En curso'
+    };
+    app.projects = [activeProject, { ...activeProject, id: 12, projectCode: 'HK-0012', status: 'Finalizado' }];
+    app.cashEntries = [
+      { id: 1, projectId: 11, date: '2026-09-02', concept: 'Anticipo', detail: '', amount: 300, type: 'Ingreso' },
+      { id: 2, projectId: 11, date: '2026-09-03', concept: 'Compra', detail: '', amount: 80, type: 'Egreso' },
+      { id: 3, projectId: 11, date: '2026-09-04', concept: 'Segundo pago', detail: '', amount: 200, type: 'Ingreso' },
+      { id: 4, date: '2026-09-05', concept: 'Ingreso sin proyecto', detail: '', amount: 50, type: 'Ingreso' }
+    ];
+
+    expect(app.projectsInProgress.map((project) => project.id)).toEqual([11]);
+    expect(app.cashProjectLabel(app.cashEntries[0])).toBe('HK-0011 · Nikko Works');
+    expect(app.cashProjectSellingPrice(app.cashEntries[0])).toBe('Gs. 1.000');
+    expect(app.cashProjectPayments(app.cashEntries[0])).toBe('Gs. 500');
+    expect(app.cashProjectLabel(app.cashEntries[3])).toBe('Sin asignar');
+    expect(app.cashProjectPayments(app.cashEntries[3])).toBe('—');
+  });
+
   it('should filter projects by start month and text together', () => {
     const app = TestBed.createComponent(AppComponent).componentInstance;
     const project = (projectCode: string, client: string, startDate: string): ProjectRecord => ({

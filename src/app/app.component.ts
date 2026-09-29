@@ -35,7 +35,7 @@ export class AppComponent implements OnInit, AfterViewInit {
   projectForm = { projectCode: '', client: '', startDate: this.today(), deliveryDate: this.today(), hours: 0, laborCost: 0, sellingPrice: 0 };
   projectLines: { materialId: number | null; quantity: number }[] = [{ materialId: null, quantity: 1 }];
   receiptForm = { materialId: 0, quantity: 0, unitCost: 0, date: this.today() };
-  cashForm = { date: this.today(), concept: '', detail: '', amount: 0, type: 'Ingreso' as 'Ingreso' | 'Egreso' };
+  cashForm = { date: this.today(), concept: '', detail: '', amount: 0, type: 'Ingreso' as 'Ingreso' | 'Egreso', projectId: null as number | null };
   budgetForm = { client: '', description: '', sellingPrice: 0, date: this.today() };
   todayDate = this.today();
   private charts: Chart[] = [];
@@ -96,6 +96,28 @@ export class AppComponent implements OnInit, AfterViewInit {
 
   get activeProjects(): number {
     return this.projects.filter((project) => project.status === 'En curso').length;
+  }
+
+  get projectsInProgress(): ProjectRecord[] {
+    return this.projects.filter((project) => project.status === 'En curso');
+  }
+
+  cashProjectLabel(entry: CashRecord): string {
+    const project = this.projects.find((item) => item.id === entry.projectId);
+    return project ? `${project.projectCode} · ${project.client}` : 'Sin asignar';
+  }
+
+  cashProjectSellingPrice(entry: CashRecord): string {
+    const project = this.projects.find((item) => item.id === entry.projectId);
+    return project ? this.formatCurrency(project.sellingPrice) : '—';
+  }
+
+  cashProjectPayments(entry: CashRecord): string {
+    if (entry.projectId === undefined || entry.projectId === null) return '—';
+    const totalPayments = this.cashEntries
+      .filter((item) => item.projectId === entry.projectId && item.type === 'Ingreso')
+      .reduce((total, item) => total + item.amount, 0);
+    return this.formatCurrency(totalPayments);
   }
 
   get lowStockCount(): number {
@@ -350,7 +372,7 @@ export class AppComponent implements OnInit, AfterViewInit {
 
   openCash(): void {
     this.formError = '';
-    this.cashForm = { date: this.today(), concept: '', detail: '', amount: 0, type: 'Ingreso' };
+    this.cashForm = { date: this.today(), concept: '', detail: '', amount: 0, type: 'Ingreso', projectId: null };
     this.modal = 'cash';
   }
 
@@ -407,7 +429,12 @@ export class AppComponent implements OnInit, AfterViewInit {
 
   async saveCash(): Promise<void> {
     try {
-      await this.database.addCashEntry({ ...this.cashForm, concept: this.cashForm.concept.trim(), detail: this.cashForm.detail.trim() });
+      await this.database.addCashEntry({
+        ...this.cashForm,
+        projectId: this.cashForm.projectId === null ? null : Number(this.cashForm.projectId),
+        concept: this.cashForm.concept.trim(),
+        detail: this.cashForm.detail.trim()
+      });
       this.modal = null;
       await this.refresh();
     } catch (error) { this.showError(error); }
