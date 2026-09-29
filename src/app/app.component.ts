@@ -29,6 +29,8 @@ export class AppComponent implements OnInit, AfterViewInit {
   formError = '';
   budgetFormMode: 'view' | 'edit' | 'create' = 'view';
   selectedBudgetId: number | null = null;
+  pendingBudgetDeletion: BudgetRecord | null = null;
+  pendingProjectCompletion: ProjectRecord | null = null;
   materialForm = { code: '', name: '', unit: 'pza', initialStock: 0, unitCost: 0, minimumStock: 0 };
   projectForm = { projectCode: '', client: '', startDate: this.today(), deliveryDate: this.today(), hours: 0, laborCost: 0, sellingPrice: 0 };
   projectLines: { materialId: number | null; quantity: number }[] = [{ materialId: null, quantity: 1 }];
@@ -273,10 +275,24 @@ export class AppComponent implements OnInit, AfterViewInit {
     document.body.appendChild(printFrame);
   }
 
-  async deleteBudget(budget: BudgetRecord, event: Event): Promise<void> {
+  requestBudgetDeletion(budget: BudgetRecord, event: Event): void {
     event.stopPropagation();
-    if (budget.id === undefined) return;
+    this.pendingBudgetDeletion = budget;
+  }
+
+  cancelBudgetDeletion(): void {
+    this.pendingBudgetDeletion = null;
+  }
+
+  async confirmBudgetDeletion(): Promise<void> {
+    const budget = this.pendingBudgetDeletion;
+    if (budget?.id === undefined) {
+      this.cancelBudgetDeletion();
+      return;
+    }
+
     await this.database.deleteBudget(budget.id);
+    this.cancelBudgetDeletion();
     await this.refresh();
   }
 
@@ -371,6 +387,22 @@ export class AppComponent implements OnInit, AfterViewInit {
     if (project.id === undefined) return;
     await this.database.completeProject(project.id, this.today());
     await this.refresh();
+  }
+
+  requestProjectCompletion(project: ProjectRecord): void {
+    this.pendingProjectCompletion = project;
+  }
+
+  cancelProjectCompletion(): void {
+    this.pendingProjectCompletion = null;
+  }
+
+  async confirmProjectCompletion(): Promise<void> {
+    const project = this.pendingProjectCompletion;
+    if (!project) return;
+
+    await this.completeProject(project);
+    this.cancelProjectCompletion();
   }
 
   async saveCash(): Promise<void> {

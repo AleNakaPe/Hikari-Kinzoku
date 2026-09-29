@@ -159,6 +159,15 @@ th:first-child, td:first-child { padding-left: 19px; }
 .form-error i { margin-top: 1px; }
 .dialog-submit { width: 100%; min-height: 39px; margin-top: 4px; }
 .budget-actions { display: flex; justify-content: flex-end; margin-top: 8px; }
+.confirm-dialog { width: min(100%, 420px); padding: 25px; }
+.confirm-icon { display: grid; width: 42px; height: 42px; place-items: center; margin-bottom: 16px; border-radius: 50%; color: #9b593f; background: #f8eee8; font-size: 17px; }
+.completion-icon { color: #39705c; background: #edf4ef; }
+.confirm-dialog h2 { margin: 0 0 9px; color: #2d4036; font-size: 17px; font-weight: 600; }
+.confirm-dialog p { margin: 0; color: #78867f; font-size: 12px; line-height: 1.6; }
+.confirm-dialog p strong { color: #46574e; }
+.confirm-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px; }
+.button-danger { color: #fff; background: #9b493d; }
+.button-danger:hover { background: #813b32; }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes rise-in { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
 

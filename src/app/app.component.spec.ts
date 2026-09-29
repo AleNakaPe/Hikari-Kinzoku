@@ -109,4 +109,87 @@ describe('AppComponent', () => {
     expect(html).toContain('Gs. 1.600');
     expect(printFrame.addEventListener).toHaveBeenCalledWith('load', jasmine.any(Function), { once: true });
   });
+
+  it('should keep the budget when deletion is cancelled', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    const budget = { id: 7, client: 'Nikko Works', description: 'Estructura', sellingPrice: 1600, date: '2026-09-10' };
+    const event = new Event('click');
+    spyOn(event, 'stopPropagation');
+
+    app.requestBudgetDeletion(budget, event);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('¿Eliminar presupuesto?');
+    expect(fixture.nativeElement.textContent).toContain('Nikko Works');
+
+    app.cancelBudgetDeletion();
+    fixture.detectChanges();
+    expect(app.pendingBudgetDeletion).toBeNull();
+    expect(fixture.nativeElement.querySelector('[role="alertdialog"]')).toBeNull();
+    expect(event.stopPropagation).toHaveBeenCalled();
+  });
+
+  it('should delete a budget only after confirmation', async () => {
+    const app = TestBed.createComponent(AppComponent).componentInstance;
+    const database = (app as unknown as { database: { deleteBudget: (id: number) => Promise<void> } }).database;
+    spyOn(database, 'deleteBudget').and.resolveTo();
+    spyOn(app, 'refresh').and.resolveTo();
+    app.pendingBudgetDeletion = { id: 7, client: 'Nikko Works', description: 'Estructura', sellingPrice: 1600, date: '2026-09-10' };
+
+    await app.confirmBudgetDeletion();
+
+    expect(database.deleteBudget).toHaveBeenCalledOnceWith(7);
+    expect(app.pendingBudgetDeletion).toBeNull();
+    expect(app.refresh).toHaveBeenCalled();
+  });
+
+  it('should not complete a project when completion is cancelled', () => {
+    const app = TestBed.createComponent(AppComponent).componentInstance;
+    const database = (app as unknown as { database: { completeProject: (id: number, date: string) => Promise<void> } }).database;
+    spyOn(database, 'completeProject').and.resolveTo();
+    const project: ProjectRecord = {
+      id: 12,
+      projectCode: 'HK-0012',
+      client: 'Nikko Works',
+      startDate: '2026-09-10',
+      deliveryDate: '2026-09-20',
+      materials: [],
+      hours: 4,
+      laborCost: 200,
+      sellingPrice: 1600,
+      status: 'En curso'
+    };
+
+    app.requestProjectCompletion(project);
+    expect(app.pendingProjectCompletion).toBe(project);
+    app.cancelProjectCompletion();
+
+    expect(app.pendingProjectCompletion).toBeNull();
+    expect(database.completeProject).not.toHaveBeenCalled();
+  });
+
+  it('should complete a project and register income only after confirmation', async () => {
+    const app = TestBed.createComponent(AppComponent).componentInstance;
+    const database = (app as unknown as { database: { completeProject: (id: number, date: string) => Promise<void> } }).database;
+    spyOn(database, 'completeProject').and.resolveTo();
+    spyOn(app, 'refresh').and.resolveTo();
+    app.pendingProjectCompletion = {
+      id: 12,
+      projectCode: 'HK-0012',
+      client: 'Nikko Works',
+      startDate: '2026-09-10',
+      deliveryDate: '2026-09-20',
+      materials: [],
+      hours: 4,
+      laborCost: 200,
+      sellingPrice: 1600,
+      status: 'En curso'
+    };
+
+    await app.confirmProjectCompletion();
+
+    expect(database.completeProject).toHaveBeenCalledOnceWith(12, jasmine.any(String));
+    expect(app.pendingProjectCompletion).toBeNull();
+    expect(app.refresh).toHaveBeenCalled();
+  });
 });
