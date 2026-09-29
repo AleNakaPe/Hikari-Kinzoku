@@ -16,6 +16,14 @@ npm start
 
 Abre `http://localhost:4200`. La aplicación se ejecuta en el navegador y no requiere API ni conexión a internet después de instalar las dependencias.
 
+## Funcionalidades
+
+- **Resumen:** indicadores operativos y gráficas de inventario, proyectos y caja.
+- **Inventario:** materiales, existencias, entradas de compra y alertas de stock bajo.
+- **Presupuestos:** crear, consultar, editar y eliminar presupuestos. La eliminación solicita confirmación. Cada presupuesto puede imprimirse como una nota con folio, cliente, fecha, descripción e importe; desde el diálogo de impresión del navegador se puede guardar como PDF.
+- **Proyectos:** registrar proyectos con materiales y mano de obra, consultar costos y margen, y filtrar por texto o mes. Al finalizar un proyecto se solicita confirmación antes de registrar su precio de venta como ingreso en caja.
+- **Caja:** consultar ingresos y egresos, incluido el saldo acumulado. Las compras y los cierres de proyecto generan sus movimientos correspondientes.
+
 ## Datos y reglas
 
 Los registros se almacenan localmente en IndexedDB mediante Dexie, en el perfil del navegador/dispositivo. No se envían a un servidor. Al primer inicio se cargan datos de ejemplo para mostrar el dashboard; pueden modificarse desde las pantallas.
